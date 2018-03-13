@@ -46,12 +46,12 @@ public:
 		Scope(std::ostream& _stream, bool const _enabled): m_stream(_stream), m_enabled(_enabled) {}
 		~Scope() { try { if (m_enabled) m_stream << RESET; } catch(...) {} }
 		template<typename T>
-		std::ostream& operator<<(T&& t) { return m_stream << std::forward<T>(t); }
+		std::ostream& operator<<(T&& _t) { return m_stream << std::forward<T>(_t); }
 	private:
 		std::ostream& m_stream;
 		bool const m_enabled = false;
 	};
-	Scope format(std::ostream& _stream, std::vector<const char*> const& _formatting) const
+	Scope format(std::ostream& _stream, std::vector<char const*> const& _formatting) const
 	{
 		if (m_enabled)
 			for (auto const& format: _formatting)
