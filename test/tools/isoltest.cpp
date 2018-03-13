@@ -296,6 +296,13 @@ Allowed options)",
 		po::command_line_parser cmdLineParser(argc, argv);
 		cmdLineParser.options(options);
 		po::store(cmdLineParser.run(), arguments);
+
+		if (arguments.count("help"))
+		{
+			cout << options << endl;
+			return 0;
+		}
+
 		po::notify(arguments);
 	}
 	catch (po::error const& _exception)
@@ -304,9 +311,7 @@ Allowed options)",
 		return 1;
 	}
 
-	if (arguments.count("help"))
-		cout << options;
-	else if (fs::exists(testPath) && fs::is_directory(testPath))
+	if (fs::exists(testPath) && fs::is_directory(testPath))
 	{
 		int runCount = 0;
 		int successCount = 0;
