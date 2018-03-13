@@ -21,11 +21,13 @@
  */
 
 #include <libsolidity/codegen/CompilerUtils.h>
+
 #include <libsolidity/ast/AST.h>
-#include <libevmasm/Instruction.h>
 #include <libsolidity/codegen/ArrayUtils.h>
 #include <libsolidity/codegen/LValue.h>
 #include <libsolidity/codegen/ABIFunctions.h>
+
+#include <libevmasm/Instruction.h>
 
 using namespace std;
 
@@ -36,11 +38,13 @@ namespace solidity
 
 const unsigned CompilerUtils::dataStartOffset = 4;
 const size_t CompilerUtils::freeMemoryPointer = 64;
+const size_t CompilerUtils::zeroPointer = CompilerUtils::freeMemoryPointer + 0x20;
 const unsigned CompilerUtils::identityContractAddress = 4;
 
 void CompilerUtils::initialiseFreeMemoryPointer()
 {
-	m_context << u256(freeMemoryPointer + 32);
+	solAssert(zeroPointer == CompilerUtils::freeMemoryPointer + 0x20, "");
+	m_context << u256(zeroPointer + 0x20);
 	storeFreeMemoryPointer();
 }
 
@@ -873,6 +877,13 @@ void CompilerUtils::pushZeroValue(Type const& _type)
 		return;
 	}
 	solAssert(referenceType->location() == DataLocation::Memory, "");
+	if (auto arrayType = dynamic_cast<ArrayType const*>(&_type))
+		if (arrayType->isDynamicallySized())
+		{
+			// Push a memory location that is (hopefully) always zero.
+			pushZeroPointer();
+			return;
+		}
 
 	TypePointer type = _type.shared_from_this();
 	m_context.callLowLevelFunction(
@@ -893,13 +904,8 @@ void CompilerUtils::pushZeroValue(Type const& _type)
 				}
 			else if (auto arrayType = dynamic_cast<ArrayType const*>(type.get()))
 			{
-				if (arrayType->isDynamicallySized())
-				{
-					// zero length
-					_context << u256(0);
-					utils.storeInMemoryDynamic(IntegerType(256));
-				}
-				else if (arrayType->length() > 0)
+				solAssert(!arrayType->isDynamicallySized(), "");
+				if (arrayType->length() > 0)
 				{
 					_context << arrayType->length() << Instruction::SWAP1;
 					// stack: items_to_do memory_pos
@@ -914,6 +920,11 @@ void CompilerUtils::pushZeroValue(Type const& _type)
 			_context << Instruction::POP;
 		}
 	);
+}
+
+void CompilerUtils::pushZeroPointer()
+{
+	m_context << u256(zeroPointer);
 }
 
 void CompilerUtils::moveToStackVariable(VariableDeclaration const& _variable)

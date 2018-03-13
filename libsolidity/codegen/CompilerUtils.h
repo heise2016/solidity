@@ -200,6 +200,9 @@ public:
 	/// Creates a zero-value for the given type and puts it onto the stack. This might allocate
 	/// memory for memory references.
 	void pushZeroValue(Type const& _type);
+	/// Pushes a pointer to the stack that points to a (potentially shared) location in memory
+	/// that always contains a zero. It is not allowed to write there.
+	void pushZeroPointer();
 
 	/// Moves the value that is at the top of the stack to a stack variable.
 	void moveToStackVariable(VariableDeclaration const& _variable);
@@ -245,6 +248,8 @@ public:
 
 	/// Position of the free-memory-pointer in memory;
 	static const size_t freeMemoryPointer;
+	/// Position of the memory slot that is always zero.
+	static const size_t zeroPointer;
 
 private:
 	/// Address of the precompiled identity contract.
