@@ -15,6 +15,7 @@
 	along with solidity.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <libdevcore/CommonIO.h>
 #include <test/libsolidity/AnalysisFramework.h>
 #include <test/libsolidity/SyntaxTest.h>
 
@@ -22,71 +23,16 @@
 #include <boost/filesystem.hpp>
 #include <boost/program_options.hpp>
 
+#include <cstdlib>
 #include <iostream>
 #include <fstream>
-#ifdef __unix__
-#include <unistd.h>
-#include <termios.h>
-#elif defined(_WIN32)
-#include <windows.h>
-#endif
 
+using namespace dev;
 using namespace dev::solidity;
 using namespace dev::solidity::test;
 using namespace std;
 namespace po = boost::program_options;
 namespace fs = boost::filesystem;
-
-#ifdef __unix__
-class DisableConsoleBuffering
-{
-public:
-	DisableConsoleBuffering()
-	{
-		if (tcgetattr(0, &m_termios) < 0)
-			perror("tcsetattr()");
-		m_termios.c_lflag &= ~ICANON;
-		m_termios.c_lflag &= ~ECHO;
-		m_termios.c_cc[VMIN] = 1;
-		m_termios.c_cc[VTIME] = 0;
-		if (tcsetattr(0, TCSANOW, &m_termios) < 0)
-			perror("tcsetattr ICANON");
-	}
-	~DisableConsoleBuffering()
-	{
-		m_termios.c_lflag |= ICANON;
-		m_termios.c_lflag |= ECHO;
-		if (tcsetattr(0, TCSADRAIN, &m_termios) < 0)
-			perror ("tcsetattr ~ICANON");
-	}
-private:
-	struct termios m_termios;
-};
-#elif defined(_WIN32)
-class DisableConsoleBuffering
-{
-public:
-	DisableConsoleBuffering()
-	{
-		m_stdin = GetStdHandle(STD_INPUT_HANDLE);
-		GetConsoleMode(m_stdin, &m_oldMode);
-		SetConsoleMode(m_stdin, m_oldMode & (~(ENABLE_ECHO_INPUT | ENABLE_LINE_INPUT)));
-	}
-	~DisableConsoleBuffering()
-	{
-		SetConsoleMode(m_stdin, m_oldMode);
-	}
-private:
-	HANDLE m_stdin;
-	DWORD m_oldMode;
-};
-#else
-class DisableConsoleBuffering {
-public:
-	DisableConsoleBuffering() {}
-	~DisableConsoleBuffering() {}
-};
-#endif
 
 class SyntaxTestTool: FormattedPrinter
 {
@@ -197,7 +143,7 @@ bool SyntaxTestTool::handleResponse(int& _successCount, bool const _parserError)
 
 	while (true)
 	{
-		switch(cin.get())
+		switch(readStandardInputChar())
 		{
 		case 's':
 			cout << endl;
@@ -266,8 +212,6 @@ bool SyntaxTestTool::processPath(
 
 int main(int argc, char *argv[])
 {
-	DisableConsoleBuffering disableConsoleBuffering;
-
 	if (getenv("EDITOR"))
 		SyntaxTestTool::editor = getenv("EDITOR");
 
